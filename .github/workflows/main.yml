@@ -60,17 +60,17 @@ jobs:
           fi
           unzip -o "$ZIP_FILE" -d extracted
 
-      # 7️⃣ Install npm dependencies (Vite/React) in www
-      - name: Install npm dependencies in www
+      # 7️⃣ Install npm dependencies in project root
+      - name: Install npm dependencies
         run: |
-          cd ./extracted/Smartcent_Ready/www
+          cd ./extracted/Smartcent_Ready
           npm install
 
-      # 8️⃣ Build React/Vite project inside www
+      # 8️⃣ Build React/Vite project (root contains vite.config.ts)
       - name: Build React/Vite project
         run: |
           cd ./extracted/Smartcent_Ready
-          npx vite build --config www/vite.config.ts
+          npm run build
 
       # 9️⃣ Copy build output to Android assets/public
       - name: Copy build to Android assets
