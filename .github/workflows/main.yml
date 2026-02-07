@@ -1,4 +1,4 @@
-name: Build Android APK from ZIP
+name: Build Signed Android APK from ZIP
 
 on:
   push:
@@ -31,20 +31,18 @@ jobs:
             echo "No ZIP file found!"
             exit 1
           fi
-          echo "Extracting $ZIP_FILE..."
           unzip -o "$ZIP_FILE" -d extracted
+
+      - name: Prepare keystore from secret
+        run: |
+          echo "$RELEASE_KEYSTORE" | base64 --decode > ./extracted/Smartcent_Ready/android/app/my-release-key.jks
 
       - name: Go to Android folder and prepare gradlew
         run: |
           ANDROID_DIR="./extracted/Smartcent_Ready/android"
-          if [ ! -f "$ANDROID_DIR/gradlew" ]; then
-            echo "gradlew not found in $ANDROID_DIR!"
-            exit 1
-          fi
           cd "$ANDROID_DIR"
           chmod +x ./gradlew
           sed -i 's/\r$//' ./gradlew
-          echo "Gradlew ready in $ANDROID_DIR"
 
       - name: Install global Capacitor CLI
         run: npm install -g @capacitor/cli
@@ -52,23 +50,21 @@ jobs:
       - name: Install dependencies and sync Capacitor
         run: |
           PROJECT_DIR="./extracted/Smartcent_Ready"
-          if [ -f "$PROJECT_DIR/package.json" ]; then
-            cd "$PROJECT_DIR"
-            echo "Installing npm dependencies..."
-            npm install
-            echo "Running Capacitor sync..."
-            npx cap sync android
-          else
-            echo "No package.json found, skipping npm install and Capacitor sync"
-          fi
+          cd "$PROJECT_DIR"
+          npm install
+          npx cap sync android
 
-      - name: Build APK
+      - name: Build Signed Release APK
         run: |
           cd ./extracted/Smartcent_Ready/android
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease \
+            -PreleaseStoreFile=app/my-release-key.jks \
+            -PreleaseStorePassword=$RELEASE_STORE_PASSWORD \
+            -PreleaseKeyAlias=$RELEASE_KEY_ALIAS \
+            -PreleaseKeyPassword=$RELEASE_KEY_PASSWORD
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: release-apk
+          name: signed-release-apk
           path: "**/build/outputs/apk/release/*.apk"
