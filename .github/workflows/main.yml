@@ -54,28 +54,23 @@ jobs:
           fi
           unzip -o "$ZIP_FILE" -d extracted
 
-      # Move www contents to root temporarily for Vite build
-      - name: Move www to root for Vite
-        run: |
-          mv ./extracted/Smartcent_Ready/www/* ./extracted/Smartcent_Ready/
-
-      # Install npm dependencies
+      # Install npm dependencies in www
       - name: Install npm dependencies
         run: |
-          cd ./extracted/Smartcent_Ready
+          cd ./extracted/Smartcent_Ready/www
           npm install
 
-      # Build React/Vite project
+      # Build React/Vite directly in www
       - name: Build React/Vite project
         run: |
-          cd ./extracted/Smartcent_Ready
+          cd ./extracted/Smartcent_Ready/www
           npm run build
 
       # Copy build output to Android assets/public
       - name: Copy build to Android assets
         run: |
           mkdir -p ./extracted/Smartcent_Ready/android/app/src/main/assets/public
-          cp -r ./extracted/Smartcent_Ready/dist/* ./extracted/Smartcent_Ready/android/app/src/main/assets/public/
+          cp -r ./extracted/Smartcent_Ready/www/dist/* ./extracted/Smartcent_Ready/android/app/src/main/assets/public/
 
       # Install Capacitor CLI
       - name: Install Capacitor CLI
