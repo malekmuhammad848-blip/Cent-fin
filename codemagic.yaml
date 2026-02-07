@@ -6,10 +6,10 @@ workflows:
     environment:
       vars:
         JAVA_VERSION: "17"
+      node: "18"  # أضف Node.js
     scripts:
       - name: Extract project ZIP
         script: |
-          # Look for any zip file and extract it
           ZIP_FILE=$(find . -name "*.zip" -print -quit)
           if [ -z "$ZIP_FILE" ]; then
             echo "No ZIP file found in the repository."
@@ -17,21 +17,34 @@ workflows:
           fi
           echo "Extracting $ZIP_FILE..."
           unzip -o "$ZIP_FILE" -d .
-      - name: Locate gradlew and set permissions
+      - name: Locate project root
         script: |
-          # Search for gradlew after extraction
-          GRADLEW_PATH=$(find . -name gradlew -print -quit)
-          if [ -z "$GRADLEW_PATH" ]; then
-            echo "Error: gradlew not found even after extraction."
+          PROJECT_ROOT=$(find . -name gradlew -print -quit | xargs dirname)
+          if [ -z "$PROJECT_ROOT" ]; then
+            echo "gradlew not found!"
             exit 1
           fi
-          cd $(dirname "$GRADLEW_PATH")
+          cd "$PROJECT_ROOT"
           chmod +x gradlew
-          echo "Found gradlew at: $GRADLEW_PATH"
+          echo "Project root: $PROJECT_ROOT"
+      - name: Install Node.js dependencies
+        script: |
+          if [ -f package.json ]; then
+            echo "Installing npm dependencies..."
+            npm install
+          else
+            echo "No package.json found, skipping npm install"
+          fi
+      - name: Sync Capacitor
+        script: |
+          if [ -f package.json ]; then
+            echo "Running Capacitor sync..."
+            npx cap sync android
+          else
+            echo "No Capacitor project, skipping sync"
+          fi
       - name: Build Android Release APK
         script: |
-          GRADLEW_PATH=$(find . -name gradlew -print -quit)
-          cd $(dirname "$GRADLEW_PATH")
           ./gradlew assembleRelease
     artifacts:
       - "**/build/outputs/apk/release/*.apk"
@@ -39,4 +52,3 @@ workflows:
       email:
         recipients:
           - your-email@example.com
-          
