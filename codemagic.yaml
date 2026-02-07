@@ -1,22 +1,40 @@
 workflows:
   native-android-project:
-    name: Native Android Workflow
+    name: Android ZIP Project Workflow
     max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
-      groups:
-        - magic_variables
       vars:
         JAVA_VERSION: "17"
     scripts:
-      - name: Set permissions for gradlew
-        script: | 
+      - name: Extract project ZIP
+        script: |
+          # Look for any zip file and extract it
+          ZIP_FILE=$(find . -name "*.zip" -print -quit)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "No ZIP file found in the repository."
+            exit 1
+          fi
+          echo "Extracting $ZIP_FILE..."
+          unzip -o "$ZIP_FILE" -d .
+      - name: Locate gradlew and set permissions
+        script: |
+          # Search for gradlew after extraction
+          GRADLEW_PATH=$(find . -name gradlew -print -quit)
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "Error: gradlew not found even after extraction."
+            exit 1
+          fi
+          cd $(dirname "$GRADLEW_PATH")
           chmod +x gradlew
+          echo "Found gradlew at: $GRADLEW_PATH"
       - name: Build Android Release APK
-        script: | 
+        script: |
+          GRADLEW_PATH=$(find . -name gradlew -print -quit)
+          cd $(dirname "$GRADLEW_PATH")
           ./gradlew assembleRelease
     artifacts:
-      - app/build/outputs/apk/release/*.apk
+      - "**/build/outputs/apk/release/*.apk"
     publishing:
       email:
         recipients:
