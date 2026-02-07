@@ -53,7 +53,7 @@ jobs:
           fi
           unzip -o "$ZIP_FILE" -d extracted
 
-      # Fix www/public folder
+      # Fix www/public folder if exists
       - name: Fix www/public folder
         run: |
           SRC="./extracted/Smartcent_Ready/www/public"
@@ -63,29 +63,26 @@ jobs:
             rm -rf $SRC
           fi
 
-      # Install project dependencies
-      - name: Install dependencies
+      # Go to www folder and build project (React/Vite)
+      - name: Build React/Vite project
         run: |
-          PROJECT_DIR="./extracted/Smartcent_Ready"
-          cd "$PROJECT_DIR"
-          npm ci
-
-      # Build React/Vite project → creates final www folder
-      - name: Build project
-        run: |
-          PROJECT_DIR="./extracted/Smartcent_Ready"
-          cd "$PROJECT_DIR"
+          cd ./extracted/Smartcent_Ready/www
+          npm install
           npm run build
 
-      # Install Capacitor CLI
-      - name: Install global Capacitor CLI
+      # Copy built www/dist to www root
+      - name: Copy build to www root
+        run: |
+          cp -r ./extracted/Smartcent_Ready/www/dist/* ./extracted/Smartcent_Ready/www/
+
+      # Install global Capacitor CLI
+      - name: Install Capacitor CLI
         run: npm install -g @capacitor/cli
 
-      # Sync www folder to Android
-      - name: Sync Capacitor Android
+      # Sync Capacitor Android
+      - name: Sync Capacitor
         run: |
-          PROJECT_DIR="./extracted/Smartcent_Ready"
-          cd "$PROJECT_DIR"
+          cd ./extracted/Smartcent_Ready
           npx cap sync android
 
       # Prepare keystore for signing
@@ -118,7 +115,7 @@ jobs:
             -PreleaseKeyPassword=$RELEASE_KEY_PASSWORD \
             --no-daemon --parallel --configure-on-demand
 
-      # Upload both APKs
+      # Upload both APKs as artifacts
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
