@@ -49,29 +49,22 @@ jobs:
           sed -i 's/\r$//' ./gradlew
           echo "Gradlew ready in $ANDROID_DIR"
 
-      - name: Install Node.js dependencies
+      - name: Install dependencies and sync Capacitor
         run: |
-          if [ -f extracted/Smartcent_Ready/package.json ]; then
-            cd extracted/Smartcent_Ready
+          PROJECT_DIR="./extracted/Smartcent_Ready"
+          if [ -f "$PROJECT_DIR/package.json" ]; then
+            cd "$PROJECT_DIR"
             echo "Installing npm dependencies..."
             npm install
-          else
-            echo "No package.json found, skipping npm install"
-          fi
-
-      - name: Sync Capacitor
-        run: |
-          if [ -f extracted/Smartcent_Ready/package.json ]; then
-            cd extracted/Smartcent_Ready
             echo "Running Capacitor sync..."
             npx cap sync android
           else
-            echo "No Capacitor project, skipping sync"
+            echo "No package.json found, skipping npm install and Capacitor sync"
           fi
 
       - name: Build APK
         run: |
-          cd extracted/Smartcent_Ready/android
+          cd ./extracted/Smartcent_Ready/android
           ./gradlew assembleRelease
 
       - name: Upload APK
