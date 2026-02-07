@@ -48,6 +48,9 @@ jobs:
           sed -i 's/\r$//' ./gradlew
           echo "Gradlew ready in $ANDROID_DIR"
 
+      - name: Install global Capacitor CLI
+        run: npm install -g @capacitor/cli
+
       - name: Install dependencies and sync Capacitor
         run: |
           PROJECT_DIR="./extracted/Smartcent_Ready"
