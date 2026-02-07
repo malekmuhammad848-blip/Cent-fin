@@ -1,127 +1,32 @@
-name: Build Fully Functional Android APKs
+name: Extract ZIP into Repository
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
-  build-apk:
+  unzip:
     runs-on: ubuntu-latest
-    env:
-      NODE_VERSION: 20
-      JAVA_VERSION: 21
+
     steps:
-      # 1️⃣ Checkout code
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      # 2️⃣ Setup Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      # 3️⃣ Setup Java
-      - name: Setup Java
-        uses: actions/setup-java@v3
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-
-      # 4️⃣ Cache npm
-      - name: Cache npm
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      # 5️⃣ Cache Gradle
-      - name: Cache Gradle
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      # 6️⃣ Extract ZIP
-      - name: Extract ZIP
+      - name: Find and unzip project
         run: |
-          ZIP_FILE=$(find . -name "*.zip" -print -quit)
-          if [ -z "$ZIP_FILE" ]; then
-            echo "No ZIP file found!"
-            exit 1
-          fi
-          unzip -o "$ZIP_FILE" -d extracted
+          ZIP=$(ls *.zip | head -n 1)
+          echo "Found zip: $ZIP"
+          unzip -o "$ZIP" -d extracted
 
-      # 7️⃣ Install npm dependencies in project root
-      - name: Install npm dependencies
+      - name: Move extracted files to root
         run: |
-          cd ./extracted/Smartcent_Ready
-          npm install
+          shopt -s dotglob
+          mv extracted/* . || true
+          rm -rf extracted
 
-      # 8️⃣ Build React/Vite project (root contains vite.config.ts)
-      - name: Build React/Vite project
+      - name: Commit extracted files
         run: |
-          cd ./extracted/Smartcent_Ready
-          npm run build
+          git config --global user.email "bot@github.com"
+          git config --global user.name "github-actions"
 
-      # 9️⃣ Copy build output to Android assets/public
-      - name: Copy build to Android assets
-        run: |
-          mkdir -p ./extracted/Smartcent_Ready/android/app/src/main/assets/public
-          cp -r ./extracted/Smartcent_Ready/www/dist/* ./extracted/Smartcent_Ready/android/app/src/main/assets/public/
-
-      # 🔟 Install Capacitor CLI
-      - name: Install Capacitor CLI
-        run: npm install -g @capacitor/cli
-
-      # 1️⃣1️⃣ Sync Capacitor Android
-      - name: Sync Capacitor
-        run: |
-          cd ./extracted/Smartcent_Ready
-          npx cap sync android
-
-      # 1️⃣2️⃣ Prepare keystore for signing (Release APK)
-      - name: Prepare keystore
-        run: |
-          echo "$RELEASE_KEYSTORE" | base64 --decode > ./extracted/Smartcent_Ready/android/app/my-release-key.jks
-
-      # 1️⃣3️⃣ Prepare gradlew
-      - name: Prepare gradlew
-        run: |
-          cd ./extracted/Smartcent_Ready/android
-          chmod +x ./gradlew
-          sed -i 's/\r$//' ./gradlew
-
-      # 1️⃣4️⃣ Build Debug APK
-      - name: Build Debug APK
-        run: |
-          cd ./extracted/Smartcent_Ready/android
-          ./gradlew assembleDebug --no-daemon --parallel --configure-on-demand
-
-      # 1️⃣5️⃣ Build Signed Release APK
-      - name: Build Signed Release APK
-        run: |
-          cd ./extracted/Smartcent_Ready/android
-          ./gradlew assembleRelease \
-            -PreleaseStoreFile=app/my-release-key.jks \
-            -PreleaseStorePassword=$RELEASE_STORE_PASSWORD \
-            -PreleaseKeyAlias=$RELEASE_KEY_ALIAS \
-            -PreleaseKeyPassword=$RELEASE_KEY_PASSWORD \
-            --no-daemon --parallel --configure-on-demand
-
-      # 1️⃣6️⃣ Upload APKs as Artifacts
-      - name: Upload APKs
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apks
-          path: |
-            ./extracted/Smartcent_Ready/android/app/build/outputs/apk/debug/*.apk
-            ./extracted/Smartcent_Ready/android/app/build/outputs/apk/release/*.apk
+          git add .
+          git commit -m "Extract ZIP project" || echo "Nothing to commit"
+          git push
