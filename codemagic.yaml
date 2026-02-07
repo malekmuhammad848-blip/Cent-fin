@@ -6,7 +6,7 @@ workflows:
     environment:
       vars:
         JAVA_VERSION: "17"
-      node: "18"  # أضف Node.js
+      node: "18"  # لتثبيت npm و npx
     scripts:
       - name: Extract project ZIP
         script: |
@@ -17,16 +17,17 @@ workflows:
           fi
           echo "Extracting $ZIP_FILE..."
           unzip -o "$ZIP_FILE" -d .
-      - name: Locate project root
+      - name: Locate gradlew and set permissions
         script: |
-          PROJECT_ROOT=$(find . -name gradlew -print -quit | xargs dirname)
-          if [ -z "$PROJECT_ROOT" ]; then
-            echo "gradlew not found!"
+          GRADLEW_PATH=$(find . -name gradlew -print -quit)
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "Error: gradlew not found even after extraction."
             exit 1
           fi
+          PROJECT_ROOT=$(dirname "$GRADLEW_PATH")
+          echo "Project root found at: $PROJECT_ROOT"
           cd "$PROJECT_ROOT"
           chmod +x gradlew
-          echo "Project root: $PROJECT_ROOT"
       - name: Install Node.js dependencies
         script: |
           if [ -f package.json ]; then
@@ -45,10 +46,7 @@ workflows:
           fi
       - name: Build Android Release APK
         script: |
+          echo "Building APK..."
           ./gradlew assembleRelease
     artifacts:
       - "**/build/outputs/apk/release/*.apk"
-    publishing:
-      email:
-        recipients:
-          - your-email@example.com
