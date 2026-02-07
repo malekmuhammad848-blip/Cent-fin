@@ -6,7 +6,7 @@ workflows:
     environment:
       vars:
         JAVA_VERSION: "17"
-      node: "18"  # لتثبيت npm و npx
+      node: "18"
     scripts:
       - name: Extract project ZIP
         script: |
@@ -19,15 +19,18 @@ workflows:
           unzip -o "$ZIP_FILE" -d .
       - name: Locate gradlew and set permissions
         script: |
-          GRADLEW_PATH=$(find . -name gradlew -print -quit)
+          # البحث عن gradlew في أي مكان
+          GRADLEW_PATH=$(find . -name gradlew -type f -print -quit)
           if [ -z "$GRADLEW_PATH" ]; then
             echo "Error: gradlew not found even after extraction."
             exit 1
           fi
+          echo "Found gradlew at: $GRADLEW_PATH"
+          # استخراج مجلد gradlew والتعامل مع الفراغات في المسار
           PROJECT_ROOT=$(dirname "$GRADLEW_PATH")
-          echo "Project root found at: $PROJECT_ROOT"
+          echo "Project root: $PROJECT_ROOT"
           cd "$PROJECT_ROOT"
-          chmod +x gradlew
+          chmod +x ./gradlew
       - name: Install Node.js dependencies
         script: |
           if [ -f package.json ]; then
@@ -47,6 +50,7 @@ workflows:
       - name: Build Android Release APK
         script: |
           echo "Building APK..."
+          # استخدام مسار كامل للgradlew مع اقتباسات
           ./gradlew assembleRelease
     artifacts:
       - "**/build/outputs/apk/release/*.apk"
