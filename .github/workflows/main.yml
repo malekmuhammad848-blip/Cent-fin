@@ -53,29 +53,24 @@ jobs:
           fi
           unzip -o "$ZIP_FILE" -d extracted
 
-      # Fix www/public folder if exists
-      - name: Fix www/public folder
+      # Build React/Vite project from root
+      - name: Install dependencies
         run: |
-          SRC="./extracted/Smartcent_Ready/www/public"
-          DEST="./extracted/Smartcent_Ready/www"
-          if [ -d "$SRC" ]; then
-            mv $SRC/* $DEST/
-            rm -rf $SRC
-          fi
+          cd ./extracted/Smartcent_Ready
+          npm install
 
-      # Go to www folder and build project (React/Vite)
       - name: Build React/Vite project
         run: |
-          cd ./extracted/Smartcent_Ready/www
-          npm install
+          cd ./extracted/Smartcent_Ready
           npm run build
 
-      # Copy built www/dist to www root
-      - name: Copy build to www root
+      # Copy build output to Android assets/public
+      - name: Copy build to Android assets
         run: |
-          cp -r ./extracted/Smartcent_Ready/www/dist/* ./extracted/Smartcent_Ready/www/
+          mkdir -p ./extracted/Smartcent_Ready/android/app/src/main/assets/public
+          cp -r ./extracted/Smartcent_Ready/dist/* ./extracted/Smartcent_Ready/android/app/src/main/assets/public/
 
-      # Install global Capacitor CLI
+      # Install Capacitor CLI
       - name: Install Capacitor CLI
         run: npm install -g @capacitor/cli
 
@@ -85,7 +80,7 @@ jobs:
           cd ./extracted/Smartcent_Ready
           npx cap sync android
 
-      # Prepare keystore for signing
+      # Prepare keystore
       - name: Prepare keystore
         run: |
           echo "$RELEASE_KEYSTORE" | base64 --decode > ./extracted/Smartcent_Ready/android/app/my-release-key.jks
@@ -93,8 +88,7 @@ jobs:
       # Prepare gradlew
       - name: Prepare gradlew
         run: |
-          ANDROID_DIR="./extracted/Smartcent_Ready/android"
-          cd "$ANDROID_DIR"
+          cd ./extracted/Smartcent_Ready/android
           chmod +x ./gradlew
           sed -i 's/\r$//' ./gradlew
 
@@ -115,7 +109,7 @@ jobs:
             -PreleaseKeyPassword=$RELEASE_KEY_PASSWORD \
             --no-daemon --parallel --configure-on-demand
 
-      # Upload both APKs as artifacts
+      # Upload APKs
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
