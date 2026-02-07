@@ -1,4 +1,4 @@
-name: Build Android APK from ZIP (www as root)
+name: Build Fully Functional Android APKs
 
 on:
   push:
@@ -44,6 +44,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      # Extract ZIP
       - name: Extract ZIP
         run: |
           ZIP_FILE=$(find . -name "*.zip" -print -quit)
@@ -53,18 +54,28 @@ jobs:
           fi
           unzip -o "$ZIP_FILE" -d extracted
 
-      # Build React/Vite from www folder (www as root)
-      - name: Build React/Vite
+      # Move www contents to root temporarily for Vite build
+      - name: Move www to root for Vite
         run: |
-          cd ./extracted/Smartcent_Ready/www
+          mv ./extracted/Smartcent_Ready/www/* ./extracted/Smartcent_Ready/
+
+      # Install npm dependencies
+      - name: Install npm dependencies
+        run: |
+          cd ./extracted/Smartcent_Ready
           npm install
+
+      # Build React/Vite project
+      - name: Build React/Vite project
+        run: |
+          cd ./extracted/Smartcent_Ready
           npm run build
 
-      # Copy built files to Android assets/public
+      # Copy build output to Android assets/public
       - name: Copy build to Android assets
         run: |
           mkdir -p ./extracted/Smartcent_Ready/android/app/src/main/assets/public
-          cp -r ./extracted/Smartcent_Ready/www/dist/* ./extracted/Smartcent_Ready/android/app/src/main/assets/public/
+          cp -r ./extracted/Smartcent_Ready/dist/* ./extracted/Smartcent_Ready/android/app/src/main/assets/public/
 
       # Install Capacitor CLI
       - name: Install Capacitor CLI
@@ -76,7 +87,7 @@ jobs:
           cd ./extracted/Smartcent_Ready
           npx cap sync android
 
-      # Prepare keystore for release
+      # Prepare keystore for release signing
       - name: Prepare keystore
         run: |
           echo "$RELEASE_KEYSTORE" | base64 --decode > ./extracted/Smartcent_Ready/android/app/my-release-key.jks
@@ -105,7 +116,7 @@ jobs:
             -PreleaseKeyPassword=$RELEASE_KEY_PASSWORD \
             --no-daemon --parallel --configure-on-demand
 
-      # Upload APKs as artifacts
+      # Upload APKs
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
