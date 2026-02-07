@@ -1,4 +1,4 @@
-name: Build Signed Android APK from ZIP
+name: Fast Build Signed Android APK from ZIP
 
 on:
   push:
@@ -18,11 +18,31 @@ jobs:
         with:
           node-version: 20
 
+      # Cache npm dependencies to speed up builds
+      - name: Cache npm
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Setup Java 21
         uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: 21
+
+      # Cache Gradle to speed up build
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Extract ZIP
         run: |
@@ -51,7 +71,7 @@ jobs:
         run: |
           PROJECT_DIR="./extracted/Smartcent_Ready"
           cd "$PROJECT_DIR"
-          npm install
+          npm ci
           npx cap sync android
 
       - name: Build Signed Release APK
@@ -61,7 +81,8 @@ jobs:
             -PreleaseStoreFile=app/my-release-key.jks \
             -PreleaseStorePassword=$RELEASE_STORE_PASSWORD \
             -PreleaseKeyAlias=$RELEASE_KEY_ALIAS \
-            -PreleaseKeyPassword=$RELEASE_KEY_PASSWORD
+            -PreleaseKeyPassword=$RELEASE_KEY_PASSWORD \
+            --no-daemon --parallel --configure-on-demand
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
