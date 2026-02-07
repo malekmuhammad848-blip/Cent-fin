@@ -1,4 +1,4 @@
-name: Build Android APKs (Debug + Signed Release)
+name: Build Fully Functional Android APKs
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      # Cache npm
+      # Cache npm dependencies
       - name: Cache npm
         uses: actions/cache@v3
         with:
@@ -63,30 +63,45 @@ jobs:
             rm -rf $SRC
           fi
 
-      # Prepare keystore from secret
+      # Install project dependencies
+      - name: Install dependencies
+        run: |
+          PROJECT_DIR="./extracted/Smartcent_Ready"
+          cd "$PROJECT_DIR"
+          npm ci
+
+      # Build React/Vite project → creates final www folder
+      - name: Build project
+        run: |
+          PROJECT_DIR="./extracted/Smartcent_Ready"
+          cd "$PROJECT_DIR"
+          npm run build
+
+      # Install Capacitor CLI
+      - name: Install global Capacitor CLI
+        run: npm install -g @capacitor/cli
+
+      # Sync www folder to Android
+      - name: Sync Capacitor Android
+        run: |
+          PROJECT_DIR="./extracted/Smartcent_Ready"
+          cd "$PROJECT_DIR"
+          npx cap sync android
+
+      # Prepare keystore for signing
       - name: Prepare keystore
         run: |
           echo "$RELEASE_KEYSTORE" | base64 --decode > ./extracted/Smartcent_Ready/android/app/my-release-key.jks
 
-      - name: Go to Android folder and prepare gradlew
+      # Prepare gradlew
+      - name: Prepare gradlew
         run: |
           ANDROID_DIR="./extracted/Smartcent_Ready/android"
           cd "$ANDROID_DIR"
           chmod +x ./gradlew
           sed -i 's/\r$//' ./gradlew
 
-      - name: Install global Capacitor CLI
-        run: npm install -g @capacitor/cli
-
-      - name: Install dependencies and sync Capacitor
-        run: |
-          PROJECT_DIR="./extracted/Smartcent_Ready"
-          cd "$PROJECT_DIR"
-          npm ci
-          npx cap sync android
-
-      # ------------------------
-      # Build Debug APK (installable immediately)
+      # Build Debug APK
       - name: Build Debug APK
         run: |
           cd ./extracted/Smartcent_Ready/android
