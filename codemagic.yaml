@@ -17,20 +17,16 @@ workflows:
           fi
           echo "Extracting $ZIP_FILE..."
           unzip -o "$ZIP_FILE" -d .
-      - name: Locate gradlew and set permissions
+      - name: Go to android folder and set gradlew permissions
         script: |
-          # البحث عن gradlew في أي مكان
-          GRADLEW_PATH=$(find . -name gradlew -type f -print -quit)
-          if [ -z "$GRADLEW_PATH" ]; then
-            echo "Error: gradlew not found even after extraction."
+          if [ ! -d "./android" ]; then
+            echo "android folder not found!"
             exit 1
           fi
-          echo "Found gradlew at: $GRADLEW_PATH"
-          # استخراج مجلد gradlew والتعامل مع الفراغات في المسار
-          PROJECT_ROOT=$(dirname "$GRADLEW_PATH")
-          echo "Project root: $PROJECT_ROOT"
-          cd "$PROJECT_ROOT"
+          cd ./android
           chmod +x ./gradlew
+          # إصلاح أي مشكلة Line Endings
+          sed -i 's/\r$//' ./gradlew
       - name: Install Node.js dependencies
         script: |
           if [ -f package.json ]; then
@@ -50,7 +46,6 @@ workflows:
       - name: Build Android Release APK
         script: |
           echo "Building APK..."
-          # استخدام مسار كامل للgradlew مع اقتباسات
           ./gradlew assembleRelease
     artifacts:
       - "**/build/outputs/apk/release/*.apk"
