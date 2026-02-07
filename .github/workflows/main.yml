@@ -1,4 +1,4 @@
-name: Extract ZIP for inspection
+name: Build Android APK from ZIP
 
 on:
   push:
@@ -7,28 +7,75 @@ on:
   workflow_dispatch:
 
 jobs:
-  extract-zip:
+  build-apk:
     runs-on: ubuntu-latest
+    env:
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+      NODE_VERSION: 18
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Find and extract ZIP
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Extract ZIP
         run: |
-          # البحث عن أول ملف ZIP في المستودع
           ZIP_FILE=$(find . -name "*.zip" -print -quit)
           if [ -z "$ZIP_FILE" ]; then
             echo "No ZIP file found!"
             exit 1
           fi
-          echo "Found ZIP: $ZIP_FILE"
-          
-          # إنشاء مجلد extraction
-          mkdir -p extracted
-          echo "Extracting ZIP to extracted/ folder..."
+          echo "Extracting $ZIP_FILE..."
           unzip -o "$ZIP_FILE" -d extracted
 
-      - name: List extracted files
+      - name: Go to Android folder and prepare gradlew
         run: |
-          echo "Listing all extracted files:"
-          ls -R extracted
+          ANDROID_DIR="./extracted/Smartcent_Ready/android"
+          if [ ! -f "$ANDROID_DIR/gradlew" ]; then
+            echo "gradlew not found in $ANDROID_DIR!"
+            exit 1
+          fi
+          cd "$ANDROID_DIR"
+          chmod +x ./gradlew
+          sed -i 's/\r$//' ./gradlew
+          echo "Gradlew ready in $ANDROID_DIR"
+
+      - name: Install Node.js dependencies
+        run: |
+          if [ -f extracted/Smartcent_Ready/package.json ]; then
+            cd extracted/Smartcent_Ready
+            echo "Installing npm dependencies..."
+            npm install
+          else
+            echo "No package.json found, skipping npm install"
+          fi
+
+      - name: Sync Capacitor
+        run: |
+          if [ -f extracted/Smartcent_Ready/package.json ]; then
+            cd extracted/Smartcent_Ready
+            echo "Running Capacitor sync..."
+            npx cap sync android
+          else
+            echo "No Capacitor project, skipping sync"
+          fi
+
+      - name: Build APK
+        run: |
+          cd extracted/Smartcent_Ready/android
+          ./gradlew assembleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: "**/build/outputs/apk/release/*.apk"
