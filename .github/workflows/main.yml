@@ -9,22 +9,28 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    env:
+      NODE_VERSION: 20
+      JAVA_VERSION: 21
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Node.js 20
+      # 2️⃣ Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Setup Java 21
+      # 3️⃣ Setup Java
+      - name: Setup Java
         uses: actions/setup-java@v3
         with:
           distribution: temurin
-          java-version: 21
+          java-version: ${{ env.JAVA_VERSION }}
 
-      # Cache npm
+      # 4️⃣ Cache npm
       - name: Cache npm
         uses: actions/cache@v3
         with:
@@ -33,7 +39,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      # Cache Gradle
+      # 5️⃣ Cache Gradle
       - name: Cache Gradle
         uses: actions/cache@v3
         with:
@@ -44,7 +50,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # Extract ZIP
+      # 6️⃣ Extract ZIP
       - name: Extract ZIP
         run: |
           ZIP_FILE=$(find . -name "*.zip" -print -quit)
@@ -54,53 +60,53 @@ jobs:
           fi
           unzip -o "$ZIP_FILE" -d extracted
 
-      # Install npm dependencies in www
-      - name: Install npm dependencies
+      # 7️⃣ Install npm dependencies (Vite/React) in www
+      - name: Install npm dependencies in www
         run: |
           cd ./extracted/Smartcent_Ready/www
           npm install
 
-      # Build React/Vite directly in www
+      # 8️⃣ Build React/Vite project inside www
       - name: Build React/Vite project
         run: |
-          cd ./extracted/Smartcent_Ready/www
-          npm run build
+          cd ./extracted/Smartcent_Ready
+          npx vite build --config www/vite.config.ts
 
-      # Copy build output to Android assets/public
+      # 9️⃣ Copy build output to Android assets/public
       - name: Copy build to Android assets
         run: |
           mkdir -p ./extracted/Smartcent_Ready/android/app/src/main/assets/public
           cp -r ./extracted/Smartcent_Ready/www/dist/* ./extracted/Smartcent_Ready/android/app/src/main/assets/public/
 
-      # Install Capacitor CLI
+      # 🔟 Install Capacitor CLI
       - name: Install Capacitor CLI
         run: npm install -g @capacitor/cli
 
-      # Sync Capacitor Android
+      # 1️⃣1️⃣ Sync Capacitor Android
       - name: Sync Capacitor
         run: |
           cd ./extracted/Smartcent_Ready
           npx cap sync android
 
-      # Prepare keystore for release signing
+      # 1️⃣2️⃣ Prepare keystore for signing (Release APK)
       - name: Prepare keystore
         run: |
           echo "$RELEASE_KEYSTORE" | base64 --decode > ./extracted/Smartcent_Ready/android/app/my-release-key.jks
 
-      # Prepare gradlew
+      # 1️⃣3️⃣ Prepare gradlew
       - name: Prepare gradlew
         run: |
           cd ./extracted/Smartcent_Ready/android
           chmod +x ./gradlew
           sed -i 's/\r$//' ./gradlew
 
-      # Build Debug APK
+      # 1️⃣4️⃣ Build Debug APK
       - name: Build Debug APK
         run: |
           cd ./extracted/Smartcent_Ready/android
           ./gradlew assembleDebug --no-daemon --parallel --configure-on-demand
 
-      # Build Signed Release APK
+      # 1️⃣5️⃣ Build Signed Release APK
       - name: Build Signed Release APK
         run: |
           cd ./extracted/Smartcent_Ready/android
@@ -111,7 +117,7 @@ jobs:
             -PreleaseKeyPassword=$RELEASE_KEY_PASSWORD \
             --no-daemon --parallel --configure-on-demand
 
-      # Upload APKs
+      # 1️⃣6️⃣ Upload APKs as Artifacts
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
