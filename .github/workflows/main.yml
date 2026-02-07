@@ -1,4 +1,4 @@
-name: Build Android APK from ZIP
+name: Extract ZIP for inspection
 
 on:
   push:
@@ -7,74 +7,28 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-apk:
+  extract-zip:
     runs-on: ubuntu-latest
-    env:
-      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
-      NODE_VERSION: 18
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
-      - name: Setup Java
-        uses: actions/setup-java@v3
-        with:
-          distribution: temurin
-          java-version: 17
-
       - name: Find and extract ZIP
         run: |
+          # البحث عن أول ملف ZIP في المستودع
           ZIP_FILE=$(find . -name "*.zip" -print -quit)
           if [ -z "$ZIP_FILE" ]; then
             echo "No ZIP file found!"
             exit 1
           fi
-          echo "Extracting $ZIP_FILE..."
+          echo "Found ZIP: $ZIP_FILE"
+          
+          # إنشاء مجلد extraction
+          mkdir -p extracted
+          echo "Extracting ZIP to extracted/ folder..."
           unzip -o "$ZIP_FILE" -d extracted
 
-      - name: Locate gradlew and set permissions
+      - name: List extracted files
         run: |
-          GRADLEW_PATH=$(find ./extracted -type f -name gradlew -print -quit)
-          if [ -z "$GRADLEW_PATH" ]; then
-            echo "gradlew not found!"
-            exit 1
-          fi
-          PROJECT_ROOT=$(dirname "$GRADLEW_PATH")
-          echo "Project root: $PROJECT_ROOT"
-          cd "$PROJECT_ROOT"
-          chmod +x ./gradlew
-          sed -i 's/\r$//' ./gradlew
-          echo "Gradlew ready"
-
-      - name: Install Node.js dependencies
-        run: |
-          if [ -f package.json ]; then
-            echo "Installing npm dependencies..."
-            npm install
-          else
-            echo "No package.json found, skipping npm install"
-          fi
-
-      - name: Sync Capacitor
-        run: |
-          if [ -f package.json ]; then
-            echo "Running Capacitor sync..."
-            npx cap sync android
-          else
-            echo "No Capacitor project, skipping sync"
-          fi
-
-      - name: Build APK
-        run: |
-          ./gradlew assembleRelease
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-apk
-          path: "**/build/outputs/apk/release/*.apk"
+          echo "Listing all extracted files:"
+          ls -R extracted
