@@ -12,8 +12,9 @@ jobs:
     env:
       NODE_VERSION: 20
       JAVA_VERSION: 21
+
     steps:
-      # 1️⃣ Checkout code
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -50,56 +51,56 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # 6️⃣ Install npm dependencies
+      # 6️⃣ Install npm dependencies in www
       - name: Install npm dependencies
         run: |
-          cd Smartcent_Ready
+          cd ./Smartcent_Ready/www
           npm install
 
-      # 7️⃣ Build React/Vite project
+      # 7️⃣ Build React/Vite project from www
       - name: Build React/Vite project
         run: |
-          cd Smartcent_Ready
+          cd ./Smartcent_Ready/www
           npm run build
 
       # 8️⃣ Copy build output to Android assets/public
       - name: Copy build to Android assets
         run: |
-          mkdir -p Smartcent_Ready/android/app/src/main/assets/public
-          cp -r Smartcent_Ready/dist/* Smartcent_Ready/android/app/src/main/assets/public/
+          mkdir -p ./Smartcent_Ready/android/app/src/main/assets/public
+          cp -r ./Smartcent_Ready/www/dist/* ./Smartcent_Ready/android/app/src/main/assets/public/
 
       # 9️⃣ Install Capacitor CLI
       - name: Install Capacitor CLI
         run: npm install -g @capacitor/cli
 
-      # 🔟 Sync Capacitor
-      - name: Sync Capacitor Android
+      # 🔟 Sync Capacitor Android
+      - name: Sync Capacitor
         run: |
-          cd Smartcent_Ready
+          cd ./Smartcent_Ready
           npx cap sync android
 
-      # 1️⃣1️⃣ Prepare keystore
+      # 1️⃣1️⃣ Prepare keystore for signing (Release APK)
       - name: Prepare keystore
         run: |
-          echo "$RELEASE_KEYSTORE" | base64 --decode > Smartcent_Ready/android/app/my-release-key.jks
+          echo "$RELEASE_KEYSTORE" | base64 --decode > ./Smartcent_Ready/android/app/my-release-key.jks
 
       # 1️⃣2️⃣ Prepare gradlew
       - name: Prepare gradlew
         run: |
-          cd Smartcent_Ready/android
-          chmod +x gradlew
-          sed -i 's/\r$//' gradlew
+          cd ./Smartcent_Ready/android
+          chmod +x ./gradlew
+          sed -i 's/\r$//' ./gradlew
 
       # 1️⃣3️⃣ Build Debug APK
       - name: Build Debug APK
         run: |
-          cd Smartcent_Ready/android
+          cd ./Smartcent_Ready/android
           ./gradlew assembleDebug --no-daemon --parallel --configure-on-demand
 
       # 1️⃣4️⃣ Build Signed Release APK
       - name: Build Signed Release APK
         run: |
-          cd Smartcent_Ready/android
+          cd ./Smartcent_Ready/android
           ./gradlew assembleRelease \
             -PreleaseStoreFile=app/my-release-key.jks \
             -PreleaseStorePassword=$RELEASE_STORE_PASSWORD \
@@ -107,11 +108,11 @@ jobs:
             -PreleaseKeyPassword=$RELEASE_KEY_PASSWORD \
             --no-daemon --parallel --configure-on-demand
 
-      # 1️⃣5️⃣ Upload APKs
+      # 1️⃣5️⃣ Upload APKs as Artifacts
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
           name: android-apks
           path: |
-            Smartcent_Ready/android/app/build/outputs/apk/debug/*.apk
-            Smartcent_Ready/android/app/build/outputs/apk/release/*.apk
+            ./Smartcent_Ready/android/app/build/outputs/apk/debug/*.apk
+            ./Smartcent_Ready/android/app/build/outputs/apk/release/*.apk
