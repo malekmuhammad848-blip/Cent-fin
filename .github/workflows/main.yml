@@ -1,46 +1,74 @@
-name: Extract ZIP into Repo
+name: Build & Sign Android APK
 
 on:
   workflow_dispatch:
 
 jobs:
-  unzip-and-commit:
+  build-and-sign-apk:
     runs-on: ubuntu-latest
+    env:
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
     steps:
-      # 1️⃣ Checkout the repository
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      # 1️⃣ Checkout repository
+      - uses: actions/checkout@v4
 
-      # 2️⃣ Find ZIP file
-      - name: Find ZIP file
-        id: findzip
-        run: |
-          ZIP_FILE=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
-          if [ -z "$ZIP_FILE" ]; then
-            echo "No ZIP file found!"
-            exit 1
-          fi
-          echo "zip=$ZIP_FILE" >> $GITHUB_OUTPUT
+      # 2️⃣ Setup Node 20
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      # 3️⃣ Extract ZIP to temporary folder
-      - name: Extract ZIP
+      # 3️⃣ Install npm dependencies
+      - name: Install npm packages
         run: |
-          mkdir -p extracted
-          unzip -o "${{ steps.findzip.outputs.zip }}" -d extracted
+          cd Smartcent_Ready
+          npm install
 
-      # 4️⃣ Move all extracted files to repository root
-      - name: Move files to repo root
+      # 4️⃣ Build React/Vite web assets
+      - name: Build Web Assets
         run: |
-          shopt -s dotglob
-          mv extracted/* . || true
-          rm -rf extracted
+          cd Smartcent_Ready
+          npm run build
 
-      # 5️⃣ Commit and push extracted files
-      - name: Commit and push
+      # 5️⃣ Capacitor sync Android
+      - name: Capacitor Sync
         run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
-          git add .
-          git commit -m "Extract ZIP to repo" || echo "No changes to commit"
-          git push
+          cd Smartcent_Ready
+          npx cap sync android
+
+      # 6️⃣ Set Gradle permissions
+      - name: Prepare Gradle
+        run: |
+          cd Smartcent_Ready/android
+          chmod +x gradlew
+
+      # 7️⃣ Create keystore (temporary for signing)
+      # يمكنك استبدال secrets بـ keystore حقيقي لديك إذا أردت
+      - name: Create Signing Keystore
+        run: |
+          cd Smartcent_Ready/android
+          keytool -genkey -v -keystore release.keystore -alias releasekey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass 123456 -keypass 123456 -dname "CN=App, OU=Dev, O=YourCompany, L=City, S=State, C=US"
+
+      # 8️⃣ Update gradle.properties with signing info
+      - name: Configure Signing
+        run: |
+          cd Smartcent_Ready/android
+          echo "RELEASE_STORE_FILE=release.keystore" >> gradle.properties
+          echo "RELEASE_KEY_ALIAS=releasekey" >> gradle.properties
+          echo "RELEASE_STORE_PASSWORD=123456" >> gradle.properties
+          echo "RELEASE_KEY_PASSWORD=123456" >> gradle.properties
+
+      # 9️⃣ Build Signed Release APK
+      - name: Build APK
+        run: |
+          cd Smartcent_Ready/android
+          ./gradlew assembleRelease
+
+      # 🔟 Upload APK artifact
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: Smartcent_Ready/android/app/build/outputs/apk/release/*.apk
