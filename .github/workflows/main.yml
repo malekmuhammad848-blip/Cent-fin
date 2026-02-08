@@ -1,33 +1,46 @@
-name: Extract ZIP into Repository
+name: Extract ZIP into Repo
 
 on:
   workflow_dispatch:
 
 jobs:
-  unzip:
+  unzip-and-commit:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      # 1️⃣ Checkout the repository
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: Find and unzip project
+      # 2️⃣ Find ZIP file
+      - name: Find ZIP file
+        id: findzip
         run: |
-          ZIP=$(ls *.zip | head -n 1)
-          echo "Found zip: $ZIP"
-          unzip -o "$ZIP" -d extracted
+          ZIP_FILE=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "No ZIP file found!"
+            exit 1
+          fi
+          echo "zip=$ZIP_FILE" >> $GITHUB_OUTPUT
 
-      - name: Move extracted files to root
+      # 3️⃣ Extract ZIP to temporary folder
+      - name: Extract ZIP
+        run: |
+          mkdir -p extracted
+          unzip -o "${{ steps.findzip.outputs.zip }}" -d extracted
+
+      # 4️⃣ Move all extracted files to repository root
+      - name: Move files to repo root
         run: |
           shopt -s dotglob
           mv extracted/* . || true
           rm -rf extracted
 
-      - name: Commit extracted files
+      # 5️⃣ Commit and push extracted files
+      - name: Commit and push
         run: |
-          git config --global user.email "bot@github.com"
-          git config --global user.name "github-actions"
-
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
           git add .
-          git commit -m "Extract ZIP project" || echo "Nothing to commit"
+          git commit -m "Extract ZIP to repo" || echo "No changes to commit"
           git push
-          
