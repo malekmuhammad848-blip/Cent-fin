@@ -1,0 +1,126 @@
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  height: 100%;
+  height: -webkit-fill-available;
+  width: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+body {
+  height: 100%;
+  min-height: -webkit-fill-available;
+  width: 100%;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: #000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+::-webkit-scrollbar { width: 0; height: 0; display: none; }
+* { scrollbar-width: none; }
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+  font-family: inherit;
+  color: inherit;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+}
+
+input {
+  font-family: inherit;
+  color: #fff !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  font-size: 16px !important;
+  line-height: 1.4;
+  width: 100%;
+  display: block;
+  caret-color: #D4AF37;
+}
+
+input:focus {
+  outline: none !important;
+  border: none !important;
+}
+
+input::placeholder {
+  color: #666 !important;
+  opacity: 1;
+}
+
+input[type="text"],
+input[type="search"] {
+  -webkit-user-select: text;
+  user-select: text;
+  pointer-events: auto;
+}
+
+img {
+  user-select: none;
+  -webkit-user-drag: none;
+  display: block;
+  max-width: 100%;
+}
+
+p, h1, h2, h3, h4, h5, h6, span, label {
+  margin: 0;
+  padding: 0;
+  line-height: 1.3;
+}
+
+a { text-decoration: none; color: inherit; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes pulse { 0%,100% { opacity: .6; } 50% { opacity: 1; } }
+@keyframes glow { 0%,100% { box-shadow: 0 0 15px rgba(212,175,55,0.15); } 50% { box-shadow: 0 0 30px rgba(212,175,55,0.4); } }
+@keyframes heartPop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+@keyframes micPulse { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); } 70% { box-shadow: 0 0 0 12px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
+@keyframes eqBar { 0%,100% { height: 4px; } 50% { height: 16px; } }
+@keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+@keyframes soundWave { 0% { height: 4px; } 100% { height: 35px; } }
+@keyframes micRing1 { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(1.6); opacity: 0; } }
+@keyframes micRing2 { 0% { transform: scale(1); opacity: 0.4; } 100% { transform: scale(1.8); opacity: 0; } }
+@keyframes micRing3 { 0% { transform: scale(1); opacity: 0.2; } 100% { transform: scale(2); opacity: 0; } }
+@keyframes vinylSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes goldShimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }

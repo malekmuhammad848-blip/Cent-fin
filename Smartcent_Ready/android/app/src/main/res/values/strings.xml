@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">cent</string>
+    <string name="title_activity_main">cent</string>
+    <string name="package_name">com.smart.cent</string>
+    <string name="custom_url_scheme">com.smart.cent</string>
+</resources>

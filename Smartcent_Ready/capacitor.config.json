@@ -1,0 +1,6 @@
+{
+  "appId": "com.smart.cent",
+  "appName": "cent",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
