@@ -20,30 +20,37 @@ jobs:
 
       # 3️⃣ Install npm dependencies
       - name: Install npm packages
+        shell: bash
         run: |
           cd Smartcent_Ready
-          npm install
+          node -v
+          npm -v
+          npm install --legacy-peer-deps
 
-      # 4️⃣ Build Web Assets (React/Vite)
+      # 4️⃣ Build React/Vite Web Assets
       - name: Build Web Assets
+        shell: bash
         run: |
           cd Smartcent_Ready
           npm run build
 
       # 5️⃣ Capacitor sync Android
       - name: Capacitor Sync
+        shell: bash
         run: |
           cd Smartcent_Ready
           npx cap sync android
 
       # 6️⃣ Set Gradle permissions
       - name: Prepare Gradle
+        shell: bash
         run: |
           cd Smartcent_Ready/android
           chmod +x gradlew
 
       # 7️⃣ Create temporary signing keystore
       - name: Create Signing Keystore
+        shell: bash
         run: |
           cd Smartcent_Ready/android
           keytool -genkey -v -keystore release.keystore -alias releasekey \
@@ -52,6 +59,7 @@ jobs:
 
       # 8️⃣ Configure signing in gradle.properties
       - name: Configure Signing
+        shell: bash
         run: |
           cd Smartcent_Ready/android
           echo "RELEASE_STORE_FILE=release.keystore" >> gradle.properties
@@ -61,6 +69,7 @@ jobs:
 
       # 9️⃣ Build Signed Release APK
       - name: Build APK
+        shell: bash
         run: |
           cd Smartcent_Ready/android
           ./gradlew assembleRelease
