@@ -1,22 +1,21 @@
 import path from "path";
-import { fileURLToPath } from "url";
-import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 export default defineConfig({
-  root: path.resolve(__dirname, "www"), // ← هنا حددنا مجلد www
+  root: "www", // جذر المشروع الآن هو www
   plugins: [react(), viteSingleFile()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "src"),
+      "@": path.resolve(__dirname, "www/src"),
     },
   },
+  css: {
+    postcss: "./www/postcss.config.mjs",
+  },
   build: {
-    outDir: path.resolve(__dirname, "dist"), // الناتج سيكون في Smartcent_Ready/dist
-    emptyOutDir: true
-  }
+    outDir: "www/dist", // سيخرج البناء هنا
+    emptyOutDir: true,
+  },
 });
