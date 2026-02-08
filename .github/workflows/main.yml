@@ -1,93 +1,117 @@
-name: Full Android Build & Sign
+name: Build Fully Functional Android APKs
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
-  build:
+  build-apk:
     runs-on: ubuntu-latest
-
     env:
-      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
-
+      NODE_VERSION: 20
+      JAVA_VERSION: 21
     steps:
-      # 1️⃣ Checkout repository
-      - uses: actions/checkout@v4
+      # 1️⃣ Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # 2️⃣ Setup Node.js 20
-      - uses: actions/setup-node@v4
+      # 2️⃣ Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
 
-      # 3️⃣ Debug: تحقق من ملفات المشروع
-      - name: Debug project folder
-        shell: bash
-        run: |
-          cd Smartcent_Ready/www
-          node -v
-          npm -v
-          ls -la
-          ls -la src
-          ls -la public
+      # 3️⃣ Setup Java
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
 
-      # 4️⃣ Install npm dependencies في www
-      - name: Install npm packages
-        shell: bash
-        run: |
-          cd Smartcent_Ready/www
-          npm install --legacy-peer-deps
+      # 4️⃣ Cache npm
+      - name: Cache npm
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
-      # 5️⃣ Build Web Assets مباشرة من www إلى Android
-      - name: Build Web Assets
-        shell: bash
-        run: |
-          cd Smartcent_Ready/www
-          npx vite build --outDir ../android/app/src/main/assets/public
+      # 5️⃣ Cache Gradle
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
-      # 6️⃣ Capacitor sync Android
-      - name: Capacitor Sync
-        shell: bash
+      # 6️⃣ Install npm dependencies in Smartcent_Ready
+      - name: Install npm dependencies
         run: |
-          cd Smartcent_Ready
+          cd ./Smartcent_Ready
+          npm install
+
+      # 7️⃣ Build React/Vite project
+      - name: Build React/Vite project
+        run: |
+          cd ./Smartcent_Ready
+          npm run build
+
+      # 8️⃣ Copy build output to Android assets/public
+      - name: Copy build to Android assets
+        run: |
+          mkdir -p ./Smartcent_Ready/android/app/src/main/assets/public
+          cp -r ./Smartcent_Ready/www/dist/* ./Smartcent_Ready/android/app/src/main/assets/public/
+
+      # 9️⃣ Install Capacitor CLI
+      - name: Install Capacitor CLI
+        run: npm install -g @capacitor/cli
+
+      # 🔟 Sync Capacitor Android
+      - name: Sync Capacitor
+        run: |
+          cd ./Smartcent_Ready
           npx cap sync android
 
-      # 7️⃣ Prepare Gradle
-      - name: Prepare Gradle
-        shell: bash
+      # 1️⃣1️⃣ Prepare keystore for signing (Release APK)
+      - name: Prepare keystore
         run: |
-          cd Smartcent_Ready/android
-          chmod +x gradlew
+          echo "$RELEASE_KEYSTORE" | base64 --decode > ./Smartcent_Ready/android/app/my-release-key.jks
 
-      # 8️⃣ Create temporary signing keystore
-      - name: Create Signing Keystore
-        shell: bash
+      # 1️⃣2️⃣ Prepare gradlew
+      - name: Prepare gradlew
         run: |
-          cd Smartcent_Ready/android
-          keytool -genkey -v -keystore release.keystore -alias releasekey \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass 123456 -keypass 123456 \
-            -dname "CN=App, OU=Dev, O=YourCompany, L=City, S=State, C=US"
+          cd ./Smartcent_Ready/android
+          chmod +x ./gradlew
+          sed -i 's/\r$//' ./gradlew
 
-      # 9️⃣ Configure signing in gradle.properties
-      - name: Configure Signing
-        shell: bash
+      # 1️⃣3️⃣ Build Debug APK
+      - name: Build Debug APK
         run: |
-          cd Smartcent_Ready/android
-          echo "RELEASE_STORE_FILE=release.keystore" >> gradle.properties
-          echo "RELEASE_KEY_ALIAS=releasekey" >> gradle.properties
-          echo "RELEASE_STORE_PASSWORD=123456" >> gradle.properties
-          echo "RELEASE_KEY_PASSWORD=123456" >> gradle.properties
+          cd ./Smartcent_Ready/android
+          ./gradlew assembleDebug --no-daemon --parallel --configure-on-demand
 
-      # 🔟 Build Signed Release APK
-      - name: Build APK
-        shell: bash
+      # 1️⃣4️⃣ Build Signed Release APK
+      - name: Build Signed Release APK
         run: |
-          cd Smartcent_Ready/android
-          ./gradlew assembleRelease
+          cd ./Smartcent_Ready/android
+          ./gradlew assembleRelease \
+            -PreleaseStoreFile=app/my-release-key.jks \
+            -PreleaseStorePassword=$RELEASE_STORE_PASSWORD \
+            -PreleaseKeyAlias=$RELEASE_KEY_ALIAS \
+            -PreleaseKeyPassword=$RELEASE_KEY_PASSWORD \
+            --no-daemon --parallel --configure-on-demand
 
-      # 1️⃣1️⃣ Upload APK artifact
-      - name: Upload APK
+      # 1️⃣5️⃣ Upload APKs as Artifacts
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
-          path: Smartcent_Ready/android/app/build/outputs/apk/release/*.apk
+          name: android-apks
+          path: |
+            ./Smartcent_Ready/android/app/build/outputs/apk/debug/*.apk
+            ./Smartcent_Ready/android/app/build/outputs/apk/release/*.apk
