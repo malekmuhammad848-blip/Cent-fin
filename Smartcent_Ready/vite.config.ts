@@ -10,6 +10,11 @@ const __dirname = path.dirname(__filename);
 
 // https://vite.dev/config/
 export default defineConfig({
+  root: "www", // ← مجلد الويب
+  build: {
+    outDir: "../android/app/src/main/assets/public", // ← مكان إخراج الملفات للـ Android
+    emptyOutDir: true,
+  },
   plugins: [react(), tailwindcss(), viteSingleFile()],
   resolve: {
     alias: {
