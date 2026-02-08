@@ -24,7 +24,7 @@ jobs:
           cd Smartcent_Ready
           npm install
 
-      # 4️⃣ Build React/Vite web assets
+      # 4️⃣ Build Web Assets (React/Vite)
       - name: Build Web Assets
         run: |
           cd Smartcent_Ready
@@ -42,8 +42,7 @@ jobs:
           cd Smartcent_Ready/android
           chmod +x gradlew
 
-      # 7️⃣ Create keystore (temporary for signing)
-      # يمكنك استبدال secrets بـ keystore حقيقي لديك إذا أردت
+      # 7️⃣ Create temporary signing keystore
       - name: Create Signing Keystore
         run: |
           cd Smartcent_Ready/android
@@ -51,7 +50,7 @@ jobs:
             -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass 123456 -keypass 123456 -dname "CN=App, OU=Dev, O=YourCompany, L=City, S=State, C=US"
 
-      # 8️⃣ Update gradle.properties with signing info
+      # 8️⃣ Configure signing in gradle.properties
       - name: Configure Signing
         run: |
           cd Smartcent_Ready/android
