@@ -14,7 +14,7 @@ jobs:
       JAVA_VERSION: 21
 
     steps:
-      # 1️⃣ Checkout code
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -51,74 +51,48 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # 6️⃣ Extract ZIP
-      - name: Extract ZIP
-        run: |
-          ZIP_FILE=$(find . -name "*.zip" -print -quit)
-          if [ -z "$ZIP_FILE" ]; then
-            echo "No ZIP file found!"
-            exit 1
-          fi
-          unzip -o "$ZIP_FILE" -d extracted
-
-      # 7️⃣ Ensure postcss.config.mjs exists in www
-      - name: Setup PostCSS
-        run: |
-          WWW_DIR="./extracted/Smartcent_Ready/www"
-          if [ ! -f "$WWW_DIR/postcss.config.mjs" ]; then
-            echo "import tailwindcss from 'tailwindcss';" > $WWW_DIR/postcss.config.mjs
-            echo "import autoprefixer from 'autoprefixer';" >> $WWW_DIR/postcss.config.mjs
-            echo "export default { plugins: [tailwindcss(), autoprefixer()] };" >> $WWW_DIR/postcss.config.mjs
-          fi
-
-      # 8️⃣ Install npm dependencies in www
-      - name: Install npm dependencies
-        run: |
-          cd ./extracted/Smartcent_Ready/www
-          npm install
-          npm install tailwindcss autoprefixer --save-dev
-
-      # 9️⃣ Build React/Vite project
+      # 6️⃣ Install npm dependencies and build Vite (from www)
       - name: Build React/Vite project
         run: |
           cd ./extracted/Smartcent_Ready/www
+          npm install
           npm run build
 
-      # 🔟 Copy build output to Android assets/public
+      # 7️⃣ Copy build output to Android assets/public
       - name: Copy build to Android assets
         run: |
           mkdir -p ./extracted/Smartcent_Ready/android/app/src/main/assets/public
           cp -r ./extracted/Smartcent_Ready/www/dist/* ./extracted/Smartcent_Ready/android/app/src/main/assets/public/
 
-      # 1️⃣1️⃣ Install Capacitor CLI
+      # 8️⃣ Install Capacitor CLI
       - name: Install Capacitor CLI
         run: npm install -g @capacitor/cli
 
-      # 1️⃣2️⃣ Sync Capacitor Android
+      # 9️⃣ Sync Capacitor Android
       - name: Sync Capacitor
         run: |
           cd ./extracted/Smartcent_Ready
           npx cap sync android
 
-      # 1️⃣3️⃣ Prepare keystore for signing (Release APK)
+      # 🔟 Prepare keystore for signing (Release APK)
       - name: Prepare keystore
         run: |
           echo "$RELEASE_KEYSTORE" | base64 --decode > ./extracted/Smartcent_Ready/android/app/my-release-key.jks
 
-      # 1️⃣4️⃣ Prepare gradlew
+      # 1️⃣1️⃣ Prepare gradlew
       - name: Prepare gradlew
         run: |
           cd ./extracted/Smartcent_Ready/android
           chmod +x ./gradlew
           sed -i 's/\r$//' ./gradlew
 
-      # 1️⃣5️⃣ Build Debug APK
+      # 1️⃣2️⃣ Build Debug APK
       - name: Build Debug APK
         run: |
           cd ./extracted/Smartcent_Ready/android
           ./gradlew assembleDebug --no-daemon --parallel --configure-on-demand
 
-      # 1️⃣6️⃣ Build Signed Release APK
+      # 1️⃣3️⃣ Build Signed Release APK
       - name: Build Signed Release APK
         run: |
           cd ./extracted/Smartcent_Ready/android
@@ -129,7 +103,7 @@ jobs:
             -PreleaseKeyPassword=$RELEASE_KEY_PASSWORD \
             --no-daemon --parallel --configure-on-demand
 
-      # 1️⃣7️⃣ Upload APKs as Artifacts
+      # 1️⃣4️⃣ Upload APKs as Artifacts
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
