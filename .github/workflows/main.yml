@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '20'
 
-      # 3️⃣ Debug: check Node, npm, and package.json
+      # 3️⃣ Debug: تأكد من ملفات المشروع
       - name: Debug project folder
         shell: bash
         run: |
@@ -26,21 +26,23 @@ jobs:
           node -v
           npm -v
           ls -la
-          cat package.json
+          ls -la www
+          ls -la www/src
+          ls -la www/public
 
-      # 4️⃣ Install npm dependencies
+      # 4️⃣ Install npm dependencies (مع تجاوز مشاكل peer deps)
       - name: Install npm packages
         shell: bash
         run: |
           cd Smartcent_Ready
           npm install --legacy-peer-deps
 
-      # 5️⃣ Build Web Assets using Vite directly
+      # 5️⃣ Build Web Assets باستخدام Vite مباشرة
       - name: Build Web Assets
         shell: bash
         run: |
-          cd Smartcent_Ready
-          npx vite build
+          cd Smartcent_Ready/www
+          npx vite build --outDir ../android/app/src/main/assets/public
 
       # 6️⃣ Capacitor sync Android
       - name: Capacitor Sync
