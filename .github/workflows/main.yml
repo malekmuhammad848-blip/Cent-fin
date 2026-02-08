@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-sign-apk:
+  build:
     runs-on: ubuntu-latest
     env:
       JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
@@ -13,20 +13,20 @@ jobs:
       # 1️⃣ Checkout repository
       - uses: actions/checkout@v4
 
-      # 2️⃣ Setup Node 20
+      # 2️⃣ Setup Node.js 20
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # 3️⃣ Debug Node & npm
-      - name: Check Node and npm
+      # 3️⃣ Debug: check Node, npm, and package.json
+      - name: Debug project folder
         shell: bash
         run: |
           cd Smartcent_Ready
           node -v
           npm -v
           ls -la
-          pwd
+          cat package.json
 
       # 4️⃣ Install npm dependencies
       - name: Install npm packages
@@ -35,12 +35,12 @@ jobs:
           cd Smartcent_Ready
           npm install --legacy-peer-deps
 
-      # 5️⃣ Build React/Vite Web Assets
+      # 5️⃣ Build Web Assets using Vite directly
       - name: Build Web Assets
         shell: bash
         run: |
           cd Smartcent_Ready
-          npm run build
+          npx vite build
 
       # 6️⃣ Capacitor sync Android
       - name: Capacitor Sync
@@ -49,7 +49,7 @@ jobs:
           cd Smartcent_Ready
           npx cap sync android
 
-      # 7️⃣ Set Gradle permissions
+      # 7️⃣ Prepare Gradle
       - name: Prepare Gradle
         shell: bash
         run: |
