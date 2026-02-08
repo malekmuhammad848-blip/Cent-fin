@@ -30,3 +30,4 @@ jobs:
           git add .
           git commit -m "Extract ZIP project" || echo "Nothing to commit"
           git push
+          
